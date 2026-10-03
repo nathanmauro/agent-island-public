@@ -1,0 +1,14 @@
+* text=auto eol=lf
+*.swift text diff=swift
+*.plist text
+*.svg text
+*.sh text eol=lf
+*.icns binary
+*.png binary
+
+# Release source archives contain the application, tests and public documentation.
+# Local agent guides and historical planning/cutover notes stay in the development repository.
+/AGENTS.md export-ignore
+/CLAUDE.md export-ignore
+/docs/plans export-ignore
+/docs/specs export-ignore

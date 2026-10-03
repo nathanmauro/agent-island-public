@@ -1,0 +1,3 @@
+{"timestamp":"2026-09-21T14:13:20.000Z","type":"session_meta","payload":{"session_id":"0199f000-0000-7000-8000-000000000008","id":"0199f000-0000-7000-8000-000000000008","timestamp":"2026-09-21T14:13:20.000Z","cwd":"/tmp/fixture-project","originator":"Codex Desktop","cli_version":"0.0.0-fixture","source":"vscode","thread_source":"subagent","model_provider":"fixture"}}
+{"timestamp":"2026-09-21T14:13:21.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"turn-1","started_at":1790000001}}
+{"timestamp":"2026-09-21T14:13:23.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-1","last_agent_message":"Fixture recap.","completed_at":1790000003}}

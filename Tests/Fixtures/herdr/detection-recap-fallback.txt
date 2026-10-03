@@ -1,0 +1,10 @@
+⏺ Fixture paragraph one describes the first step of the work.
+  It continues on a second indented line.
+
+⏺ Fixture paragraph two is the final summary of the turn.
+  All fixture checks passed and nothing else is pending.
+
+──────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────
+  fixture footer · status line

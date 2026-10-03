@@ -1,0 +1,18 @@
+agent-island is derived from Moonglade (MIT) © 2026 Josemi Hernandez, commit be0c5b4
+(https://github.com/ixjosemi/Moonglade, be0c5b4bc8ccea4d27e9beda76a617baa9cc5aae).
+The MIT license text is in LICENSE.
+
+agent-island is not affiliated with, endorsed by, or sponsored by Anthropic or
+OpenAI. Claude is a trademark of Anthropic PBC. OpenAI and Codex are trademarks
+of OpenAI, L.L.C. agent-island bundles the Claude spark mark and the OpenAI mark
+solely so users can recognize each agent at a glance; the marks are used only to
+identify compatible tools (nominative fair use), remain the property of their
+respective owners, and imply no endorsement.
+
+Agent Island's Herdr socket codec (Sources/IslandCore/Herdr/HerdrCodec.swift) is ported
+from Bantay-TUI (https://github.com/8-BitRhyon/bantay-tui), commit e3e0517, and its
+one-connection-per-request client design (Sources/IslandIO/Herdr/HerdrClient.swift)
+follows Bantay-TUI's HerdrSocketClient. Bantay-TUI is MIT licensed:
+Copyright (c) 2026 Notchly contributors
+Copyright (c) 2026 Bantay-TUI contributors
+The full license text is in LICENSES/Bantay-TUI.txt.

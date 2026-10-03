@@ -1,0 +1,5 @@
+{"timestamp":"2026-09-21T14:13:20.000Z","type":"session_meta","payload":{"session_id":"0199f000-0000-7000-8000-000000000004","id":"0199f000-0000-7000-8000-000000000004","timestamp":"2026-09-21T14:13:20.000Z","cwd":"/tmp/fixture-project","originator":"Codex Desktop","cli_version":"0.0.0-fixture","source":"vscode","thread_source":"user","model_provider":"fixture"}}
+{"timestamp":"2026-09-21T14:13:21.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"turn-1","started_at":1790000001}}
+{"timestamp":"2026-09-21T14:13:22.000Z","type":"response_item","payload":{"type":"function_call","name":"request_user_input_async","arguments":"{\"questions\":[{\"title\":\"Fixture async question?\",\"options\":[\"Option A\",\"Option B\"]}]}","call_id":"call-2"}}
+{"timestamp":"2026-09-21T14:13:23.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call-2","output":"fixture output"}}
+{"timestamp":"2026-09-21T14:13:24.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-1","last_agent_message":"Fixture recap with a question.","completed_at":1790000004}}

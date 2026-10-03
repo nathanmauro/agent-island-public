@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- LaunchAgent template. launchd does not expand the home directory, so
+     scripts/install.sh writes the absolute home path into both paths below.
+     KeepAlive restarts the island after a crash, a signal or a non-zero exit,
+     not after a clean Quit or a lock-refused exit (both exit 0). -->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.nathan.agent-island</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>__HOME__/Applications/AgentIsland.app/Contents/MacOS/AgentIsland</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+	<key>StandardErrorPath</key>
+	<string>__HOME__/.local/state/agent-island/stderr.log</string>
+</dict>
+</plist>

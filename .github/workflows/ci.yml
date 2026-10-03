@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Select the newest Xcode 26
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+      - name: Show toolchain
+        run: swift --version
+      - name: Build
+        run: swift build
+      - name: Test
+        run: swift run island-tests
+      - name: Validate resources
+        run: |
+          plutil -lint config/Info.plist
+          for script in scripts/*.sh; do /bin/sh -n "$script"; done
+      - name: Package local app
+        run: ./scripts/build-app.sh
+      - name: Verify bundle
+        run: |
+          codesign --verify --deep --strict .build/AgentIsland.app
+          test -x .build/AgentIsland.app/Contents/MacOS/AgentIsland
+          test -d .build/AgentIsland.app/Contents/Resources/AgentIsland_IslandCore.bundle
+          cmp LICENSE .build/AgentIsland.app/Contents/Resources/Licenses/LICENSE
+          cmp NOTICE .build/AgentIsland.app/Contents/Resources/Licenses/NOTICE
+          cmp LICENSES/Bantay-TUI.txt .build/AgentIsland.app/Contents/Resources/Licenses/Bantay-TUI.txt
+      - name: End-to-end (fake Herdr, 30 s soak; pointer and Notification Center steps SKIP on CI)
+        run: |
+          python3 -c "import ast; ast.parse(open('scripts/nc-agent-audit.py').read())"
+          swift run island-e2e --self-check
+          ./scripts/e2e.sh --soak-seconds 30

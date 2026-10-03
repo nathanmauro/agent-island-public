@@ -1,0 +1,21 @@
+{
+  "pid": 123,
+  "sessionId": "538fcc11-00c0-4f00-be55-114d73ca51c6",
+  "cwd": "/tmp/fixture-project",
+  "startedAt": 1799999400000,
+  "procStart": "Fri Sep 25 13:02:11 2026",
+  "version": "0.0.0-fixture",
+  "peerProtocol": 1,
+  "peerFeatures": ["fixture-feature"],
+  "kind": "interactive",
+  "entrypoint": "cli",
+  "pidDomain": "fixture",
+  "messagingSocketPath": "/tmp/fixture-messaging.sock",
+  "name": "fixture session",
+  "nameSource": "fixture",
+  "nameSince": 1799999400000,
+  "status": "busy",
+  "updatedAt": 1800000000000,
+  "statusUpdatedAt": 1800000000000,
+  "bridgeSessionId": null
+}

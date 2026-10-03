@@ -1,0 +1,35 @@
+{
+  "id": "fixture-snapshot",
+  "result": {
+    "type": "session_snapshot",
+    "snapshot": {
+      "version": "0.9.1-fake",
+      "protocol": 22,
+      "focused_workspace_id": "w1",
+      "focused_tab_id": "w1:t1",
+      "focused_pane_id": "w1:p1",
+      "workspaces": [
+        {"workspace_id": "w1", "number": 1, "label": "api", "focused": true, "pane_count": 2, "tab_count": 1, "active_tab_id": "w1:t1", "agent_status": "blocked"},
+        {"workspace_id": "w2", "number": 2, "label": "web", "focused": false, "pane_count": 3, "tab_count": 1, "active_tab_id": "w2:t1", "agent_status": "done"}
+      ],
+      "tabs": [
+        {"tab_id": "w1:t1", "workspace_id": "w1", "number": 1, "label": "tab-1", "focused": true, "pane_count": 2, "agent_status": "blocked"},
+        {"tab_id": "w2:t1", "workspace_id": "w2", "number": 1, "label": "tab-1", "focused": false, "pane_count": 3, "agent_status": "done"}
+      ],
+      "panes": [
+        {"pane_id": "w1:p1", "terminal_id": "term-1", "workspace_id": "w1", "tab_id": "w1:t1", "focused": true, "agent_status": "working", "agent": "claude", "terminal_title_stripped": "fixture title 1", "cwd": "/tmp/fixture-project", "revision": 2},
+        {"pane_id": "w1:p2", "terminal_id": "term-2", "workspace_id": "w1", "tab_id": "w1:t1", "focused": false, "agent_status": "blocked", "agent": "claude", "terminal_title_stripped": "fixture title 2", "cwd": "/tmp/fixture-project", "revision": 2},
+        {"pane_id": "w2:p1", "terminal_id": "term-3", "workspace_id": "w2", "tab_id": "w2:t1", "focused": false, "agent_status": "done", "agent": "claude", "terminal_title_stripped": "fixture title 3", "cwd": "/tmp/fixture-project", "revision": 1},
+        {"pane_id": "w2:p2", "terminal_id": "term-4", "workspace_id": "w2", "tab_id": "w2:t1", "focused": false, "agent_status": "unknown", "agent": "claude", "terminal_title_stripped": "fixture title 4", "cwd": "/tmp/fixture-project", "revision": 1},
+        {"pane_id": "w2:p3", "terminal_id": "term-5", "workspace_id": "w2", "tab_id": "w2:t1", "focused": false, "agent_status": "unknown", "cwd": "/tmp/fixture-project", "revision": 1, "scroll": {"offset_from_bottom": 0, "max_offset_from_bottom": 0, "viewport_rows": 40}}
+      ],
+      "layouts": [],
+      "agents": [
+        {"pane_id": "w1:p1", "terminal_id": "term-1", "workspace_id": "w1", "tab_id": "w1:t1", "focused": true, "agent_status": "working", "agent": "claude", "terminal_title": "fixture title 1", "terminal_title_stripped": "fixture title 1", "cwd": "/tmp/fixture-project", "revision": 2, "state_change_seq": 10},
+        {"pane_id": "w1:p2", "terminal_id": "term-2", "workspace_id": "w1", "tab_id": "w1:t1", "focused": false, "agent_status": "blocked", "agent": "claude", "terminal_title": "fixture title 2", "terminal_title_stripped": "fixture title 2", "cwd": "/tmp/fixture-project", "revision": 2, "state_change_seq": 11},
+        {"pane_id": "w2:p1", "terminal_id": "term-3", "workspace_id": "w2", "tab_id": "w2:t1", "focused": false, "agent_status": "done", "agent": "claude", "terminal_title": "fixture title 3", "terminal_title_stripped": "fixture title 3", "cwd": "/tmp/fixture-project", "revision": 1, "state_change_seq": 12},
+        {"pane_id": "w2:p2", "terminal_id": "term-4", "workspace_id": "w2", "tab_id": "w2:t1", "focused": false, "agent_status": "unknown", "agent": "claude", "terminal_title": "fixture title 4", "terminal_title_stripped": "fixture title 4", "cwd": "/tmp/fixture-project", "revision": 1, "state_change_seq": 13}
+      ]
+    }
+  }
+}
