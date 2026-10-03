@@ -124,4 +124,97 @@ public enum BoardLayout {
     public static func dimsRow(_ row: AgentRow, health: FeedHealth?) -> Bool {
         health?.dimsRows == true
     }
+
+    /// A tmux target is shown only when navigation would use it, and capped.
+    static let maximumSurfaceTargetLength = 40
+    /// A feed warning is one line, capped, whatever its reason carries.
+    static let maximumWarningLength = 100
+
+    /// What a row says beside its title, to VoiceOver and in its tooltips.
+    /// `title` is the displayed name (a rename wins); `now` drives the age.
+    public static func rowText(for row: AgentRow, title: String, health: FeedHealth?, now: Date) -> BoardRowText {
+        var context: [String] = []
+        if !row.subtitle.isEmpty, normalized(row.subtitle) != normalized(title) {
+            context.append(row.subtitle)
+        }
+        if let surface = surfaceLabel(for: row.jump) {
+            context.append(surface)
+        }
+        let secondary = context.joined(separator: " · ")
+        let warning = health.flatMap { health in
+            health.showsWarning
+                ? singleLine("\(row.source.displayName) \(health.summary)", limit: maximumWarningLength)
+                : nil
+        }
+
+        let age = SessionDurationFormatter.string(from: row.since, to: now)
+        let spoken = [title, row.source.displayName, row.state.accessibilityName, age, secondary, warning ?? ""]
+        let help = [detailText(row.detail) ?? (secondary.isEmpty ? title : secondary), warning ?? ""]
+        let sourceHelp = [sourceDescription(row.source), warning ?? ""]
+        return BoardRowText(
+            secondary: secondary,
+            accessibilityLabel: spoken.filter { !$0.isEmpty }.joined(separator: ", "),
+            help: help.filter { !$0.isEmpty }.joined(separator: "\n"),
+            sourceHelp: sourceHelp.filter { !$0.isEmpty }.joined(separator: "\n")
+        )
+    }
+
+    /// Where the session runs, when the jump knows it. This is context, not
+    /// identity: several sessions can share Claude Desktop or Remote Control.
+    /// A tmux target appears only if `JumpPlanner` would switch to it.
+    private static func surfaceLabel(for jump: JumpTarget) -> String? {
+        switch jump {
+        case .claudeDesktop:
+            return "Claude Desktop"
+        case .claudeRemoteControl:
+            return "Remote Control"
+        case let .terminal(tmuxTarget):
+            guard let tmuxTarget, JumpPlanner.isValidTmuxTarget(tmuxTarget) else { return nil }
+            return "tmux \(SessionTitleFormatter.truncate(tmuxTarget, to: maximumSurfaceTargetLength))"
+        case .herdrPane, .codexThread:
+            return nil
+        }
+    }
+
+    private static func sourceDescription(_ source: SessionSource) -> String {
+        switch source {
+        case .herdr: "Herdr pane"
+        case .claudeRegistry: "Claude Code session"
+        case .codexDesktop: "Codex thread"
+        }
+    }
+
+    /// The question, error line or recap, with any options as bullets.
+    private static func detailText(_ detail: Detail?) -> String? {
+        guard let detail, !detail.question.isEmpty else { return nil }
+        guard !detail.options.isEmpty else { return detail.question }
+        return ([detail.question] + detail.options.map { "• \($0)" }).joined(separator: "\n")
+    }
+
+    /// Case-insensitive, with whitespace runs folded, for the repeat check.
+    private static func normalized(_ text: String) -> String {
+        text.split(whereSeparator: \.isWhitespace).joined(separator: " ").lowercased()
+    }
+
+    /// Control characters and line breaks become spaces, runs fold to one.
+    private static func singleLine(_ text: String, limit: Int) -> String {
+        let scalars = text.unicodeScalars.map { scalar in
+            CharacterSet.controlCharacters.contains(scalar) || CharacterSet.newlines.contains(scalar)
+                ? " " : Character(scalar)
+        }
+        let folded = String(scalars).split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        return SessionTitleFormatter.truncate(folded, to: limit)
+    }
+}
+
+/// A board row's context line, VoiceOver label and tooltips (`BoardLayout.rowText`).
+public struct BoardRowText: Equatable, Sendable {
+    /// Beside the title: a non-repeating subtitle and any known session surface.
+    public let secondary: String
+    /// Title, source, state, age, context line and any feed warning.
+    public let accessibilityLabel: String
+    /// The detail when there is one, else the context line (or the title), then any warning.
+    public let help: String
+    /// The source glyph's tooltip: what the source is, then any warning.
+    public let sourceHelp: String
 }

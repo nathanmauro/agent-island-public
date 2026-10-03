@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Clearer board rows: repeated project names give way to Claude Desktop, Remote Control, or tmux context when available. Row accessibility labels include source, status, age and feed warnings; tooltips explain source health without hiding questions or recaps.
+
 ## 0.1.0-preview.1 — 2026-10-02
 
 First public source preview.

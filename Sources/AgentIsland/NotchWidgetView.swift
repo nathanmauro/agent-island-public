@@ -1193,7 +1193,7 @@ private struct SessionMenuCard: View {
             row: row,
             title: store.displayName(for: row),
             renamePrefill: store.nameOverrides.displayName(for: row.id) ?? "",
-            isDimmed: BoardLayout.dimsRow(row, health: store.feedHealth[row.source]),
+            health: store.feedHealth[row.source],
             isActionsExpanded: actionsRowID == row.id,
             toggleActions: { toggleActions(for: row) },
             focus: { focus(row) },
@@ -1296,7 +1296,7 @@ private struct SessionRow: View {
     let row: AgentRow
     let title: String
     let renamePrefill: String
-    let isDimmed: Bool
+    let health: FeedHealth?
     let isActionsExpanded: Bool
     let toggleActions: () -> Void
     let focus: () -> Void
@@ -1327,16 +1327,23 @@ private struct SessionRow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Button(action: focus) {
-                    mainRow.contentShape(Rectangle())
+            // The system wakes this view on minute boundaries while the
+            // row is on screen — no timers, no polling while collapsed. The
+            // age text and the spoken label both read the same tick.
+            TimelineView(.everyMinute) { context in
+                let text = BoardLayout.rowText(for: row, title: title, health: health, now: context.date)
+                HStack(spacing: 0) {
+                    Button(action: focus) {
+                        mainRow(text, now: context.date).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(text.accessibilityLabel)
+                    .help(text.help)
+                    // The chevron sits beside — not inside — the focus button,
+                    // so each click has exactly one unambiguous target.
+                    chevronButton
+                        .padding(.trailing, 12)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("\(title), \(row.state.accessibilityName)")
-                // The chevron sits beside — not inside — the focus button,
-                // so each click has exactly one unambiguous target.
-                chevronButton
-                    .padding(.trailing, 12)
             }
             // A right (or control) click also expands the actions inline;
             // the catcher passes every other event through.
@@ -1395,37 +1402,34 @@ private struct SessionRow: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// The question, error line or lazily loaded recap, when the feed has one.
-    private var detailText: String? {
-        guard let detail = row.detail, !detail.question.isEmpty else { return nil }
-        guard !detail.options.isEmpty else { return detail.question }
-        return ([detail.question] + detail.options.map { "• \($0)" }).joined(separator: "\n")
-    }
-
-    /// One line: the subtitle normally, the detail while hovered.
-    private var secondaryText: String {
+    /// One line: the context line normally, the detail while hovered.
+    private func secondaryText(_ text: BoardRowText) -> String {
         if isHovered, let question = row.detail?.question, !question.isEmpty {
             return question
         }
-        return row.subtitle
+        return text.secondary
     }
 
-    private var mainRow: some View {
-        HStack(spacing: 8) {
+    private func mainRow(_ text: BoardRowText, now: Date) -> some View {
+        let secondary = secondaryText(text)
+        return HStack(spacing: 8) {
             statusLight
                 .frame(width: 11, height: 11)
             AgentIconView(source: row.source)
+                .help(text.sourceHelp)
             Text(title)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.94))
                 .lineLimit(1)
                 .layoutPriority(1)
             HStack(spacing: 3) {
-                Text(secondaryText)
+                Text(secondary)
                     .font(.system(size: 11, design: .monospaced))
                     .truncationMode(.tail)
                 if !(isHovered && row.detail != nil), let branch = branchName {
-                    Text("·")
+                    if !secondary.isEmpty {
+                        Text("·")
+                    }
                     Image(systemName: "arrow.triangle.branch")
                         .font(.system(size: 9, weight: .semibold))
                     Text(branch)
@@ -1435,21 +1439,16 @@ private struct SessionRow: View {
             .foregroundStyle(.white.opacity(0.5))
             .lineLimit(1)
             Spacer(minLength: 8)
-            // The system wakes this view on minute boundaries while the
-            // row is on screen — no timers, no polling while collapsed.
-            TimelineView(.everyMinute) { context in
-                Text(BoardLayout.ageText(for: row, now: context.date))
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.45))
-                    .lineLimit(1)
-            }
+            Text(BoardLayout.ageText(for: row, now: now))
+                .font(.system(size: 11, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.white.opacity(0.45))
+                .lineLimit(1)
         }
         .padding(.leading, SessionMenuLayout.sessionRowLeadingInset)
         .padding(.trailing, 10)
         .frame(height: SessionMenuLayout.sessionRowHeight)
-        .opacity(isDimmed ? 0.45 : 1)
-        .help(detailText ?? row.subtitle)
+        .opacity(BoardLayout.dimsRow(row, health: health) ? 0.45 : 1)
     }
 
     @ViewBuilder

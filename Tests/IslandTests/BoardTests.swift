@@ -325,4 +325,188 @@ let boardFrozenGroupingTests: [TestCase] = [
     ("board: a nil frozen assignment matches plain grouping", testNilFrozenAssignmentMatchesPlainGrouping),
 ]
 
-let boardTests: [TestCase] = boardGroupingTests + boardHeightTests + boardFrozenGroupingTests
+// MARK: Row text (title context, source and feed health)
+
+/// A synthetic row whose subtitle and jump the test chooses.
+private func contextRow(
+    source: SessionSource,
+    title: String = "agent-island",
+    subtitle: String,
+    state: DisplayState = .working,
+    ageMinutes: Double = 0,
+    jump: JumpTarget? = nil,
+    detail: Detail? = nil
+) -> AgentRow {
+    var row = AgentRow.fixture(
+        source: source,
+        key: "k1",
+        state: state,
+        since: boardTestNow.addingTimeInterval(-ageMinutes * 60),
+        title: title,
+        detail: detail,
+        jump: jump
+    )
+    row.subtitle = subtitle
+    return row
+}
+
+private func rowText(_ row: AgentRow, title: String? = nil, health: FeedHealth? = .online) -> BoardRowText {
+    BoardLayout.rowText(for: row, title: title ?? row.title, health: health, now: boardTestNow)
+}
+
+func testBoardRowTextHidesASubtitleThatRepeatsTheTitle() throws {
+    let unnamedClaude = contextRow(source: .claudeRegistry, subtitle: "  Agent-Island \n")
+    try expect(rowText(unnamedClaude).secondary, equals: "", "case and surrounding whitespace do not make a new line")
+    let spaced = contextRow(source: .codexDesktop, title: "My  Repo", subtitle: "my repo")
+    try expect(rowText(spaced).secondary, equals: "", "inner whitespace runs compare as one space")
+}
+
+func testBoardRowTextKeepsADistinctSubtitle() throws {
+    let herdr = contextRow(source: .herdr, title: "build", subtitle: "infra › shell")
+    try expect(rowText(herdr).secondary, equals: "infra › shell", "a Herdr workspace and tab")
+    let renamed = contextRow(source: .claudeRegistry, title: "agent-island", subtitle: "agent-island")
+    try expect(
+        rowText(renamed, title: "Fixer").secondary,
+        equals: "agent-island",
+        "a rename makes the folder informative again"
+    )
+}
+
+func testBoardRowTextNamesTheSessionSurface() throws {
+    let desktop = contextRow(
+        source: .claudeRegistry, subtitle: "agent-island",
+        jump: .claudeDesktop(sessionID: "s1", tmuxTarget: "work:1")
+    )
+    try expect(rowText(desktop).secondary, equals: "Claude Desktop", "Desktop replaces the repeated folder")
+    let remote = contextRow(
+        source: .claudeRegistry, subtitle: "agent-island",
+        jump: .claudeRemoteControl(bridgeSessionID: "session_abc123")
+    )
+    try expect(rowText(remote).secondary, equals: "Remote Control", "Remote Control replaces the repeated folder")
+    let tmux = contextRow(source: .claudeRegistry, subtitle: "agent-island", jump: .terminal(tmuxTarget: "work:2"))
+    try expect(rowText(tmux).secondary, equals: "tmux work:2", "a tmux target replaces the repeated folder")
+    let named = contextRow(
+        source: .claudeRegistry, title: "Fix the board", subtitle: "agent-island",
+        jump: .claudeDesktop(sessionID: "s1", tmuxTarget: nil)
+    )
+    try expect(rowText(named).secondary, equals: "agent-island · Claude Desktop", "a distinct folder keeps its place before the surface")
+}
+
+func testBoardRowTextShowsNoSurfaceWhenUnknown() throws {
+    let terminal = contextRow(source: .claudeRegistry, subtitle: "agent-island", jump: .terminal(tmuxTarget: nil))
+    try expect(rowText(terminal).secondary, equals: "", "no tmux target, no invented surface")
+    try expect(rowText(terminal).help, equals: "agent-island", "the tooltip falls back to the full title")
+    let codex = contextRow(source: .codexDesktop, subtitle: "agent-island")
+    try expect(rowText(codex).secondary, equals: "", "Codex threads add no surface")
+    let herdr = contextRow(source: .herdr, subtitle: "agent-island")
+    try expect(rowText(herdr).secondary, equals: "", "Herdr panes add no surface")
+}
+
+func testBoardRowTextSanitizesUntrustedTmuxTargets() throws {
+    for target in ["work\u{1B}[31m:1", "work 1", "-t:1", "work\n1", String(repeating: "w", count: 300)] {
+        let row = contextRow(source: .claudeRegistry, subtitle: "agent-island", jump: .terminal(tmuxTarget: target))
+        let text = rowText(row)
+        try expect(text.secondary, equals: "", "an unusable tmux target \(target.debugDescription.prefix(24)) is not shown")
+        try expectTrue(!text.accessibilityLabel.contains("tmux"), "nor spoken")
+        try expect(row.jump, equals: .terminal(tmuxTarget: target), "navigation data is unchanged")
+    }
+    let long = String(repeating: "w", count: 200)
+    let row = contextRow(source: .claudeRegistry, subtitle: "agent-island", jump: .terminal(tmuxTarget: long))
+    let secondary = rowText(row).secondary
+    try expectTrue(secondary.hasPrefix("tmux w"), "a long valid target is still named: \(secondary.prefix(12))")
+    try expectTrue(secondary.hasSuffix("…"), "and truncated")
+    try expectTrue(secondary.count <= 45, "to a compact length (\(secondary.count))")
+}
+
+func testBoardRowTextLabelNamesSourceStateAndAge() throws {
+    let claude = contextRow(source: .claudeRegistry, subtitle: "agent-island", ageMinutes: 72)
+    try expect(
+        rowText(claude).accessibilityLabel,
+        equals: "agent-island, Claude, working, 1h 12m",
+        "title, source, state and age; no repeated folder"
+    )
+    let herdr = contextRow(source: .herdr, title: "build", subtitle: "infra › shell", state: .waiting, ageMinutes: 5)
+    try expect(
+        rowText(herdr).accessibilityLabel,
+        equals: "build, Herdr, waiting for you, 5m, infra › shell",
+        "the context line follows"
+    )
+    try expect(rowText(herdr).sourceHelp, equals: "Herdr pane", "the source glyph names its source")
+    try expect(rowText(claude).sourceHelp, equals: "Claude Code session", "Claude source help")
+    try expect(
+        rowText(contextRow(source: .codexDesktop, subtitle: "x")).sourceHelp,
+        equals: "Codex thread",
+        "Codex source help"
+    )
+}
+
+func testBoardRowTextStaleDoesNotRepeatStatus() throws {
+    let stale = contextRow(source: .codexDesktop, title: "refactor", subtitle: "agent-island", state: .stale, ageMinutes: 52)
+    let label = rowText(stale).accessibilityLabel
+    try expect(label, equals: "refactor, Codex, stale, activity unconfirmed, 52m, agent-island", "stale label")
+    try expect(label.components(separatedBy: "stale").count - 1, equals: 1, "stale is said once")
+}
+
+func testBoardRowTextNamesWarningFeedHealth() throws {
+    let row = contextRow(source: .herdr, title: "build", subtitle: "infra › shell", ageMinutes: 5)
+    let base = "build, Herdr, working, 5m, infra › shell"
+    for health: FeedHealth? in [nil, .online, .inactive(reason: "no socket yet")] {
+        let text = rowText(row, health: health)
+        try expect(text.accessibilityLabel, equals: base, "\(String(describing: health)) adds no warning")
+        try expect(text.help, equals: "infra › shell", "nor to the tooltip")
+        try expect(text.sourceHelp, equals: "Herdr pane", "nor to the source tooltip")
+    }
+    let warnings: [(FeedHealth, String)] = [
+        (.offline(reason: "socket missing"), "Herdr offline: socket missing"),
+        (.disabled(reason: "protocol 23"), "Herdr disabled: protocol 23"),
+        (.degraded(reason: "jumps unavailable"), "Herdr degraded: jumps unavailable"),
+    ]
+    for (health, warning) in warnings {
+        let text = rowText(row, health: health)
+        try expect(text.accessibilityLabel, equals: "\(base), \(warning)", "\(warning) is spoken")
+        try expect(text.help, equals: "infra › shell\n\(warning)", "\(warning) is in the row tooltip")
+        try expect(text.sourceHelp, equals: "Herdr pane\n\(warning)", "\(warning) is in the source tooltip")
+    }
+    let noisy = rowText(row, health: .offline(reason: "line one\nline\u{07} two " + String(repeating: "x", count: 300)))
+    let warning = noisy.sourceHelp.components(separatedBy: "\n").dropFirst().joined()
+    try expectTrue(warning.hasPrefix("Herdr offline: line one line two x"), "a noisy reason becomes one line: \(warning.prefix(40))")
+    try expectTrue(warning.hasSuffix("…") && warning.count <= 100, "and is capped (\(warning.count))")
+}
+
+func testBoardRowTextHelpKeepsTheDetail() throws {
+    let detail = Detail(question: "Proceed?", options: ["Yes", "No"], kind: .question)
+    let row = contextRow(source: .herdr, title: "build", subtitle: "infra › shell", state: .waiting, detail: detail)
+    try expect(rowText(row).help, equals: "Proceed?\n• Yes\n• No", "the question and its options")
+    try expect(rowText(row).secondary, equals: "infra › shell", "the resting line stays the context; hover swaps in the question")
+    try expect(
+        rowText(row, health: .offline(reason: "socket missing")).help,
+        equals: "Proceed?\n• Yes\n• No\nHerdr offline: socket missing",
+        "a feed warning follows the detail"
+    )
+    let recap = Detail(question: "Done refactoring.", kind: .recap)
+    let done = contextRow(source: .codexDesktop, title: "refactor", subtitle: "agent-island", state: .doneUnseen, detail: recap)
+    try expect(rowText(done).help, equals: "Done refactoring.", "a recap without options")
+}
+
+func testBoardRowTextEmptyDetailFallsBack() throws {
+    let empty = Detail(question: "", options: ["Yes"], kind: .question)
+    let herdr = contextRow(source: .herdr, title: "build", subtitle: "infra › shell", detail: empty)
+    try expect(rowText(herdr).help, equals: "infra › shell", "an empty question falls back to the context line")
+    let claude = contextRow(source: .claudeRegistry, subtitle: "agent-island", detail: empty)
+    try expect(rowText(claude).help, equals: "agent-island", "and with no context line, to the title")
+}
+
+let boardRowTextTests: [TestCase] = [
+    ("board: row text hides a subtitle that repeats the title", testBoardRowTextHidesASubtitleThatRepeatsTheTitle),
+    ("board: row text keeps a distinct subtitle", testBoardRowTextKeepsADistinctSubtitle),
+    ("board: row text names the Desktop, Remote Control or tmux surface", testBoardRowTextNamesTheSessionSurface),
+    ("board: row text shows no surface when it is unknown", testBoardRowTextShowsNoSurfaceWhenUnknown),
+    ("board: row text drops unusable tmux targets and caps long ones", testBoardRowTextSanitizesUntrustedTmuxTargets),
+    ("board: row label names title, source, state and age", testBoardRowTextLabelNamesSourceStateAndAge),
+    ("board: a stale row label says stale once", testBoardRowTextStaleDoesNotRepeatStatus),
+    ("board: warning feed health is spoken and shown in tooltips", testBoardRowTextNamesWarningFeedHealth),
+    ("board: the row tooltip keeps the detail", testBoardRowTextHelpKeepsTheDetail),
+    ("board: an empty detail falls back to context, then title", testBoardRowTextEmptyDetailFallsBack),
+]
+
+let boardTests: [TestCase] = boardGroupingTests + boardHeightTests + boardFrozenGroupingTests + boardRowTextTests
